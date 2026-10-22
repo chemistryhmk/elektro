@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Навчальне дослідження №8: Електропровідність речовин</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+
+        /* Bulb Glow Effects */
+        .bulb-off {
+            filter: drop-shadow(0 0 0px rgba(250, 204, 21, 0));
+            transition: all 0.3s ease;
+        }
+        .bulb-dim {
+            filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.7));
+            transition: all 0.3s ease;
+        }
+        .bulb-bright {
+            filter: drop-shadow(0 0 30px rgba(250, 204, 21, 1)) drop-shadow(0 0 50px rgba(234, 179, 8, 0.9));
+            transition: all 0.3s ease;
+        }
+
+        /* Animated Current in Wires */
+        @keyframes flowCurrent {
+            0% { stroke-dashoffset: 20; }
+            100% { stroke-dashoffset: 0; }
+        }
+        .wire-flowing {
+            stroke-dasharray: 6, 6;
+            animation: flowCurrent 0.5s linear infinite;
+        }
+
+        /* Glass Vessel Styling */
+        .glass-vessel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.85) 0%, rgba(224, 242, 254, 0.4) 100%);
+            backdrop-filter: blur(4px);
+            border: 3px solid rgba(203, 213, 225, 0.9);
+            border-top: none;
+            box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Flame Animation for Heating */
+        @keyframes flameFlicker {
+            0%, 100% { transform: scale(1) rotate(-1deg); }
+            50% { transform: scale(1.1) rotate(1deg); }
+        }
+        .flame-anim {
+            animation: flameFlicker 0.25s infinite alternate;
+        }
+
+        /* Scrollbar styling for compact sample list */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 antialiased flex flex-col justify-between">
+
+    <!-- Compact Header Section -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm py-2.5 px-4 sm:px-6">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-amber-500 text-white w-10 h-10 rounded-xl shadow-md flex items-center justify-center text-xl flex-shrink-0">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-amber-600 block leading-none">Хімія 9 клас • Дослідження №8</span>
+                    <h1 class="text-lg sm:text-xl font-black text-slate-900 tracking-tight leading-tight">Електропровідність речовин, розчинів та розплавів</h1>
+                </div>
+            </div>
+            
+            <div class="hidden sm:flex items-center gap-2 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl text-amber-900 text-xs font-bold">
+                <i class="fa-solid fa-lightbulb text-amber-500 text-sm"></i>
+                <span>Порівняй речовини у сухому стані, в розчині та розплаві!</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace (Compact Grid Fit-to-screen) -->
+    <main class="max-w-7xl w-full mx-auto px-3 sm:px-6 py-3 flex-grow flex flex-col gap-3 justify-center">
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+
+            <!-- Left Column: Sample Selector & Circuit Switch (5 cols) -->
+            <div class="lg:col-span-5 flex flex-col gap-3">
+
+                <!-- Step 1: Substance Selection Card -->
+                <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex-1 flex flex-col justify-between space-y-3">
+                    
+                    <div>
+                        <div class="flex items-center justify-between border-b border-slate-100 pb-2 mb-3">
+                            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-black text-xs flex items-center justify-center">1</span>
+                                Оберіть речовину для випробування
+                            </h2>
+                            <span class="text-xs font-bold text-slate-400" id="samples-count-label">11 зразків</span>
+                        </div>
+
+                        <!-- Filter Tabs for Rapid Comparison -->
+                        <div class="grid grid-cols-4 gap-1 text-xs font-bold mb-3">
+                            <button onclick="filterSamples('all')" id="btn-cat-all" class="cat-btn py-1.5 px-1 rounded-lg bg-amber-50 text-amber-800 border-2 border-amber-500 text-center">
+                                Усі
+                            </button>
+                            <button onclick="filterSamples('salt')" id="btn-cat-salt" class="cat-btn py-1.5 px-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border-2 border-transparent text-center">
+                                Солі (NaCl, CaCl₂)
+                            </button>
+                            <button onclick="filterSamples('sugar')" id="btn-cat-sugar" class="cat-btn py-1.5 px-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border-2 border-transparent text-center">
+                                Цукор
+                            </button>
+                            <button onclick="filterSamples('others')" id="btn-cat-others" class="cat-btn py-1.5 px-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border-2 border-transparent text-center">
+                                Інші розчини
+                            </button>
+                        </div>
+
+                        <!-- Scrollable Sample Buttons List -->
+                        <div class="space-y-1.5 max-h-[220px] sm:max-h-[260px] overflow-y-auto pr-1 custom-scroll" id="sample-list-container">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Circuit Control Switch -->
+                    <div class="pt-3 border-t border-slate-100 space-y-2">
+                        <div class="flex items-center justify-between text-xs font-extrabold">
+                            <span class="text-slate-600">Стан електричного кола:</span>
+                            <span id="circuit-state-label" class="text-slate-400 uppercase tracking-wider">Розмікнено</span>
+                        </div>
+                        <button id="toggle-circuit-btn" onclick="toggleCircuit()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-power-off text-lg"></i> 
+                            <span>ЗАМКНУТИ КОЛО</span>
+                        </button>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Right Column: Interactive Stand & Stage Visualizer (7 cols) -->
+            <div class="lg:col-span-7 flex flex-col gap-3">
+
+                <!-- Stage Container -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    
+                    <!-- Stage Status Bar -->
+                    <div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between gap-2">
+                        <div class="flex items-center space-x-2.5">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                            <span class="text-sm sm:text-base font-black text-slate-900" id="stage-sample-title">Досліджуваний зразок: Дистильована вода</span>
+                        </div>
+                        <span id="sample-state-badge" class="text-xs font-extrabold px-2.5 py-1 rounded-md bg-white border border-slate-300 text-slate-700 shadow-sm">
+                            Рідкий розчин
+                        </span>
+                    </div>
+
+                    <!-- Visual Circuit Stage (Compact height) -->
+                    <div class="relative h-[250px] sm:h-[280px] bg-gradient-to-b from-slate-100 via-sky-50/20 to-slate-200 flex items-center justify-center p-4 select-none overflow-hidden" id="lab-stage">
+                        
+                        <!-- SVG Wires & Power Source (4.5V) -->
+                        <svg class="absolute inset-0 w-full h-full pointer-events-none" id="circuit-svg">
+                            <!-- Battery Pack -->
+                            <g transform="translate(30, 20)">
+                                <rect x="0" y="0" width="80" height="40" rx="8" fill="#1e293b" />
+                                <rect x="80" y="14" width="6" height="12" rx="2" fill="#64748b" />
+                                <text x="14" y="25" fill="#ffffff" font-weight="800" font-size="13">4.5 В</text>
+                                <text x="56" y="26" fill="#ef4444" font-weight="bold" font-size="16">+</text>
+                                <text x="6" y="26" fill="#3b82f6" font-weight="bold" font-size="16">-</text>
+                            </g>
+
+                            <!-- Wires Layer -->
+                            <!-- Wire 1: Battery (+) to Anode Electrode -->
+                            <path id="wire-red" d="M 110 40 L 320 40 L 320 125" fill="none" stroke="#ef4444" stroke-width="4" stroke-linecap="round" />
+                            
+                            <!-- Wire 2: Battery (-) through Bulb to Cathode Electrode -->
+                            <path id="wire-blue" d="M 30 40 L 15 40 L 15 220 L 210 220 L 210 125" fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" />
+                        </svg>
+
+                        <!-- Bulb Visual Component -->
+                        <div class="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
+                            <div id="bulb-graphic" class="relative bulb-off">
+                                <svg width="65" height="80" viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7z" id="bulb-glass" fill="#ffffff" stroke="#475569" stroke-width="1.8"/>
+                                    <path d="M9 21h6" stroke="#334155" stroke-width="2"/>
+                                    <path d="M10 18h4" stroke="#334155" stroke-width="1.8"/>
+                                    <path d="M10 13l2-4 2 4" id="bulb-filament" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                <div id="bulb-halo" class="hidden absolute inset-0 -m-4 rounded-full bg-amber-300/40 blur-xl animate-pulse"></div>
+                            </div>
+                            
+                            <span id="bulb-status-badge" class="mt-1 text-xs font-black px-2.5 py-0.5 rounded-lg bg-white/90 border border-slate-300 text-slate-600 shadow-sm">
+                                Не світиться
+                            </span>
+                        </div>
+
+                        <!-- Beaker Assembly & Electrodes -->
+                        <div class="relative mt-20 z-10 flex flex-col items-center">
+                            
+                            <!-- Burner Flame Apparatus (For Melts) -->
+                            <div id="burner-apparatus" class="hidden absolute -bottom-10 flex flex-col items-center z-0">
+                                <div class="flex gap-1 flame-anim">
+                                    <div class="w-3 h-8 bg-gradient-to-t from-orange-600 via-amber-400 to-transparent rounded-full blur-[1px]"></div>
+                                    <div class="w-4 h-9 bg-gradient-to-t from-red-600 via-yellow-300 to-transparent rounded-full blur-[1px]"></div>
+                                    <div class="w-3 h-7 bg-gradient-to-t from-orange-600 via-amber-400 to-transparent rounded-full blur-[1px]"></div>
+                                </div>
+                                <div class="w-20 h-4 bg-slate-700 rounded-t-lg shadow-inner"></div>
+                                <div class="w-28 h-2 bg-slate-800 rounded-sm"></div>
+                            </div>
+
+                            <!-- Glass Vessel -->
+                            <div class="w-52 h-44 glass-vessel rounded-b-2xl relative overflow-hidden flex flex-col justify-end">
+                                
+                                <!-- Graduation Lines -->
+                                <div class="absolute left-2 top-4 space-y-3 opacity-30 pointer-events-none">
+                                    <div class="w-4 h-0.5 bg-slate-700"></div>
+                                    <div class="w-6 h-0.5 bg-slate-700"></div>
+                                    <div class="w-4 h-0.5 bg-slate-700"></div>
+                                    <div class="w-6 h-0.5 bg-slate-700"></div>
+                                </div>
+
+                                <!-- Substance Fill Visual -->
+                                <div id="beaker-fill" class="w-full h-32 bg-sky-100/60 transition-all duration-300 relative flex items-center justify-center">
+                                    
+                                    <!-- Solid Crystals Layer (For Dry Powder/Granules) -->
+                                    <div id="dry-crystals-layer" class="hidden absolute inset-0 bg-amber-50/95 border-t-2 border-amber-200 flex flex-col items-center justify-center p-2 text-center">
+                                        <i class="fa-solid fa-cubes text-amber-500 text-2xl mb-0.5"></i>
+                                        <span class="text-xs font-bold text-amber-900" id="dry-crystals-text">Тверді сухі кристали</span>
+                                    </div>
+
+                                </div>
+
+                                <!-- Electrodes Submerged -->
+                                <div class="absolute inset-x-0 top-0 h-32 flex justify-around px-8 pointer-events-none">
+                                    <div class="w-4 h-28 bg-gradient-to-b from-slate-400 via-slate-500 to-slate-700 rounded-b shadow-md relative">
+                                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-black text-red-600 bg-white px-1.5 py-0.2 rounded border border-red-200 shadow-sm">+</span>
+                                    </div>
+                                    <div class="w-4 h-28 bg-gradient-to-b from-slate-400 via-slate-500 to-slate-700 rounded-b shadow-md relative">
+                                        <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-black text-blue-600 bg-white px-1.5 py-0.2 rounded border border-blue-200 shadow-sm">-</span>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Compact Description Note -->
+                    <div class="px-4 py-2.5 bg-white border-t border-slate-200 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-amber-500 text-sm mt-0.5"></i>
+                        <p class="text-xs sm:text-sm text-slate-600 leading-snug" id="sample-detail-desc">
+                            Опис речовини з'явиться тут.
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Step 3: Journal Log (Compact Table) -->
+        <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-2">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                <h3 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-amber-500 text-white font-black text-xs flex items-center justify-center">2</span>
+                    Журнал ваших спостережень
+                </h3>
+                <button onclick="resetJournal()" class="text-xs font-bold text-slate-400 hover:text-red-600 transition-all flex items-center gap-1">
+                    <i class="fa-solid fa-rotate-left"></i> Очистити журнал
+                </button>
+            </div>
+
+            <div class="overflow-x-auto max-h-[140px] custom-scroll">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="border-b border-slate-200 uppercase tracking-wider text-slate-500 font-extrabold bg-slate-50">
+                            <th class="p-2 rounded-l-lg">Досліджувана речовина</th>
+                            <th class="p-2">Агрегатний стан</th>
+                            <th class="p-2 rounded-r-lg">Результат (Лампочка)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="journal-tbody" class="divide-y divide-slate-100 font-medium text-slate-800">
+                        <tr id="journal-empty-row">
+                            <td colspan="3" class="p-3 text-center text-slate-400 italic">
+                                Обирайте зразки та замикайте коло — записи випробувань з'являться тут.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Problematic Discussion Box (Lesson Hook) -->
+        <div class="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-4 text-white shadow-md flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl flex-shrink-0">
+                    <i class="fa-solid fa-circle-question"></i>
+                </div>
+                <div class="space-y-0.5">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-amber-100">Головне проблемне запитання дослідження</span>
+                    <h3 class="text-sm sm:text-base font-extrabold leading-snug">
+                        Чому сухі солі не проводять струм, але починають проводити під час розчинення або розплавлення? Чому розчин цукру струм не проводить за жодних умов?
+                    </h3>
+                </div>
+            </div>
+            <div class="flex-shrink-0">
+                <span class="inline-block px-4 py-2 bg-white text-amber-950 font-black text-xs sm:text-sm rounded-xl shadow-sm text-center">
+                    Розгадаємо це на уроці!
+                </span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-2 text-center text-xs text-slate-400 font-medium">
+        Віртуальне вступне дослідження з хімії • 9 клас
+    </footer>
+
+    <!-- Application Script -->
+    <script>
+        // Database of test samples covering dry, solution, and melt forms
+        const samples = [
+            // Salt (NaCl) Group
+            {
+                id: 'dry_salt',
+                group: 'salt',
+                name: 'Кухонна сіль (Суха)',
+                formula: 'NaCl (кристалічний)',
+                state: 'Тверда (сухі кристали)',
+                conducts: 'no',
+                isDry: true,
+                color: 'rgba(254, 252, 232, 0.9)',
+                desc: 'Сухі тверді кристали кухонної солі. Вода відсутня.'
+            },
+            {
+                id: 'salt_sol',
+                group: 'salt',
+                name: 'Розчин кухонної солі',
+                formula: 'NaCl (у воді)',
+                state: 'Водний розчин',
+                conducts: 'yes',
+                color: 'rgba(224, 242, 254, 0.7)',
+                desc: 'Кухонна сіль, розчинена у дистильованій воді.'
+            },
+            {
+                id: 'salt_melt',
+                group: 'salt',
+                name: 'Розплав солі (при нагріванні)',
+                formula: 'NaCl (рідкий розплав)',
+                state: 'Рідкий розплав',
+                conducts: 'yes',
+                isMelt: true,
+                color: 'rgba(253, 230, 138, 0.85)',
+                desc: 'Тверда сіль, нагріта до високої температури до рідкого стану.'
+            },
+
+            // Calcium Chloride (CaCl2) Group
+            {
+                id: 'dry_cacl2',
+                group: 'salt',
+                name: 'Кальцій хлорид (Сухий)',
+                formula: 'CaCl₂ (кристалічний)',
+                state: 'Твердий (сухий)',
+                conducts: 'no',
+                isDry: true,
+                color: 'rgba(255, 255, 255, 0.9)',
+                desc: 'Сухі білі кристали кальцій хлориду.'
+            },
+            {
+                id: 'cacl2_sol',
+                group: 'salt',
+                name: 'Розчин кальцій хлориду',
+                formula: 'CaCl₂ (у воді)',
+                state: 'Водний розчин',
+                conducts: 'yes',
+                color: 'rgba(224, 242, 254, 0.6)',
+                desc: 'Прозорий водний розчин кальцій хлориду.'
+            },
+            {
+                id: 'cacl2_melt',
+                group: 'salt',
+                name: 'Розплав кальцій хлориду',
+                formula: 'CaCl₂ (рідкий розплав)',
+                state: 'Рідкий розплав',
+                conducts: 'yes',
+                isMelt: true,
+                color: 'rgba(254, 215, 170, 0.9)',
+                desc: 'Розплавлена сіль кальцій хлориду при нагріванні пальником.'
+            },
+
+            // Sugar Group
+            {
+                id: 'dry_sugar',
+                group: 'sugar',
+                name: 'Цукор (Сухий)',
+                formula: 'C₁₂H₂₂O₁₁ (кристалічний)',
+                state: 'Твердий (сухий)',
+                conducts: 'no',
+                isDry: true,
+                color: 'rgba(254, 243, 199, 0.8)',
+                desc: 'Сухий цукровий пісок у твердому стані.'
+            },
+            {
+                id: 'sugar_sol',
+                group: 'sugar',
+                name: 'Розчин цукру у воді',
+                formula: 'C₁₂H₂₂O₁₁ (у воді)',
+                state: 'Водний розчин',
+                conducts: 'no',
+                color: 'rgba(254, 243, 199, 0.4)',
+                desc: 'Солодка вода: розчин цукру у дистильованій воді.'
+            },
+            {
+                id: 'sugar_melt',
+                group: 'sugar',
+                name: 'Розплав цукру (карамель)',
+                formula: 'C₁₂H₂₂O₁₁ (розплавлений)',
+                state: 'Рідкий розплав',
+                conducts: 'no',
+                isMelt: true,
+                color: 'rgba(217, 119, 6, 0.7)',
+                desc: 'Цукор, розплавлений при обережному нагріванні (рідка карамель).'
+            },
+
+            // Other Solutions & Waters
+            {
+                id: 'dist_water',
+                group: 'others',
+                name: 'Дистильована вода',
+                formula: 'H₂O (чиста)',
+                state: 'Чиста рідина',
+                conducts: 'no',
+                color: 'rgba(224, 242, 254, 0.3)',
+                desc: 'Очищена вода без домішок солей.'
+            },
+            {
+                id: 'tap_water',
+                group: 'others',
+                name: 'Водопровідна вода',
+                formula: 'H₂O + природні мінерали',
+                state: 'Рідина з мінералами',
+                conducts: 'dim',
+                color: 'rgba(207, 250, 254, 0.5)',
+                desc: 'Звичайна вода з крана, що містить розчинені природні солі.'
+            },
+            {
+                id: 'acid_sol',
+                group: 'others',
+                name: 'Розчин хлоридної кислоти',
+                formula: 'HCl (у воді)',
+                state: 'Водний розчин',
+                conducts: 'yes',
+                color: 'rgba(254, 242, 242, 0.6)',
+                desc: 'Розбавлена хлоридна кислота у воді.'
+            },
+            {
+                id: 'alkali_sol',
+                group: 'others',
+                name: 'Розчин лугу (натрій гідроксид)',
+                formula: 'NaOH (у воді)',
+                state: 'Водний розчин',
+                conducts: 'yes',
+                color: 'rgba(240, 253, 244, 0.6)',
+                desc: 'Водний розчин їдкого натру.'
+            }
+        ];
+
+        // Current Application State
+        let currentSample = samples[1]; // Salt solution as default
+        let isCircuitClosed = false;
+        let loggedSamples = new Set();
+
+        // Initialize App on load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSampleButtons('all');
+            selectSample('salt_sol');
+        });
+
+        // Category Filter Switch
+        function filterSamples(cat) {
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.className = 'cat-btn py-1.5 px-1 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border-2 border-transparent text-center font-bold text-xs';
+            });
+
+            const activeBtn = document.getElementById(`btn-cat-${cat}`);
+            if (activeBtn) {
+                activeBtn.className = 'cat-btn py-1.5 px-1 rounded-lg bg-amber-50 text-amber-800 border-2 border-amber-500 text-center font-bold text-xs';
+            }
+
+            renderSampleButtons(cat);
+        }
+
+        // Render List of Samples Based on Active Filter
+        function renderSampleButtons(category) {
+            const container = document.getElementById('sample-list-container');
+            container.innerHTML = '';
+
+            const filtered = category === 'all' 
+                ? samples 
+                : samples.filter(s => s.group === category);
+
+            document.getElementById('samples-count-label').innerText = `${filtered.length} зразків`;
+
+            filtered.forEach(s => {
+                const btn = document.createElement('button');
+                btn.id = `sample-btn-${s.id}`;
+                btn.onclick = () => selectSample(s.id);
+                
+                const isSelected = s.id === currentSample.id;
+                
+                btn.className = `w-full text-left p-2.5 rounded-xl border-2 transition-all flex items-center justify-between text-xs sm:text-sm ${
+                    isSelected 
+                    ? 'border-amber-500 bg-amber-50 font-bold text-amber-950 shadow-sm ring-2 ring-amber-200' 
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-700 font-medium'
+                }`;
+
+                let badgeColor = 'bg-slate-100 text-slate-600';
+                if (s.isDry) badgeColor = 'bg-amber-100 text-amber-800';
+                if (s.isMelt) badgeColor = 'bg-orange-100 text-orange-800';
+
+                btn.innerHTML = `
+                    <div class="space-y-0.5 pr-2">
+                        <div class="font-black text-slate-900 leading-snug">${s.name}</div>
+                        <div class="text-[11px] text-slate-500 font-semibold">${s.formula}</div>
+                    </div>
+                    <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-md ${badgeColor} whitespace-nowrap">
+                        ${s.state}
+                    </span>
+                `;
+
+                container.appendChild(btn);
+            });
+        }
+
+        // Select a Specific Sample
+        function selectSample(id) {
+            currentSample = samples.find(s => s.id === id);
+
+            // Refresh Buttons Highlight
+            samples.forEach(s => {
+                const btn = document.getElementById(`sample-btn-${s.id}`);
+                if (btn) {
+                    if (s.id === id) {
+                        btn.className = 'w-full text-left p-2.5 rounded-xl border-2 border-amber-500 bg-amber-50 font-bold text-amber-950 shadow-sm ring-2 ring-amber-200 transition-all flex items-center justify-between text-xs sm:text-sm';
+                    } else {
+                        btn.className = 'w-full text-left p-2.5 rounded-xl border-2 border-slate-200 hover:bg-slate-50 text-slate-700 font-medium transition-all flex items-center justify-between text-xs sm:text-sm';
+                    }
+                }
+            });
+
+            // Update Header & Details
+            document.getElementById('stage-sample-title').innerText = `Досліджуваний зразок: ${currentSample.name}`;
+            document.getElementById('sample-state-badge').innerText = currentSample.state;
+            document.getElementById('sample-detail-desc').innerText = `${currentSample.desc} (${currentSample.formula})`;
+
+            // Fill Visual
+            const fill = document.getElementById('beaker-fill');
+            fill.style.backgroundColor = currentSample.color;
+
+            // Dry vs Melt Visual Layers
+            const dryLayer = document.getElementById('dry-crystals-layer');
+            const dryText = document.getElementById('dry-crystals-text');
+            const burner = document.getElementById('burner-apparatus');
+
+            if (currentSample.isDry) {
+                dryLayer.classList.remove('hidden');
+                dryText.innerText = `Тверді кристали (${currentSample.name})`;
+            } else {
+                dryLayer.classList.add('hidden');
+            }
+
+            if (currentSample.isMelt) {
+                burner.classList.remove('hidden');
+            } else {
+                burner.classList.add('hidden');
+            }
+
+            // Refresh Lamp & Wires
+            updateCircuitVisuals();
+
+            // Auto-log to journal if circuit is closed
+            if (isCircuitClosed) {
+                logToJournal();
+            }
+        }
+
+        // Toggle Switch On/Off
+        function toggleCircuit() {
+            isCircuitClosed = !isCircuitClosed;
+            const btn = document.getElementById('toggle-circuit-btn');
+            const label = document.getElementById('circuit-state-label');
+
+            if (isCircuitClosed) {
+                btn.className = 'w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-[0.99] text-white font-black text-base shadow-md shadow-rose-600/20 transition-all flex items-center justify-center gap-2';
+                btn.innerHTML = '<i class="fa-solid fa-power-off text-lg"></i> <span>РОЗМІКНУТИ КОЛО</span>';
+                label.innerText = 'Замкнено';
+                label.className = 'text-emerald-600 font-extrabold uppercase tracking-wider';
+
+                logToJournal();
+            } else {
+                btn.className = 'w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-md shadow-emerald-600/20 transition-all flex items-center justify-center gap-2';
+                btn.innerHTML = '<i class="fa-solid fa-power-off text-lg"></i> <span>ЗАМКНУТИ КОЛО</span>';
+                label.innerText = 'Розмікнено';
+                label.className = 'text-slate-400 font-extrabold uppercase tracking-wider';
+            }
+
+            updateCircuitVisuals();
+        }
+
+        // Update Bulb & Current Flow State
+        function updateCircuitVisuals() {
+            const wireRed = document.getElementById('wire-red');
+            const wireBlue = document.getElementById('wire-blue');
+            const bulbGraphic = document.getElementById('bulb-graphic');
+            const bulbGlass = document.getElementById('bulb-glass');
+            const bulbFilament = document.getElementById('bulb-filament');
+            const bulbHalo = document.getElementById('bulb-halo');
+            const badge = document.getElementById('bulb-status-badge');
+
+            if (isCircuitClosed) {
+                wireRed.classList.add('wire-flowing');
+                wireBlue.classList.add('wire-flowing');
+
+                if (currentSample.conducts === 'yes') {
+                    bulbGraphic.className = 'relative bulb-bright';
+                    bulbGlass.setAttribute('fill', '#fef08a');
+                    bulbGlass.setAttribute('stroke', '#eab308');
+                    bulbFilament.setAttribute('stroke', '#ca8a04');
+                    bulbHalo.classList.remove('hidden');
+
+                    badge.innerText = '💡 Яскраво світиться (Струм є)';
+                    badge.className = 'mt-1 text-xs font-black px-2.5 py-0.5 rounded-lg bg-amber-100 border border-amber-300 text-amber-900 shadow-sm';
+
+                } else if (currentSample.conducts === 'dim') {
+                    bulbGraphic.className = 'relative bulb-dim';
+                    bulbGlass.setAttribute('fill', '#fef9c3');
+                    bulbGlass.setAttribute('stroke', '#fde047');
+                    bulbFilament.setAttribute('stroke', '#eab308');
+                    bulbHalo.classList.add('hidden');
+
+                    badge.innerText = '💡 Слабко світиться (Слабкий струм)';
+                    badge.className = 'mt-1 text-xs font-bold px-2.5 py-0.5 rounded-lg bg-yellow-100 border border-yellow-300 text-yellow-900 shadow-sm';
+
+                } else {
+                    bulbGraphic.className = 'relative bulb-off';
+                    bulbGlass.setAttribute('fill', '#ffffff');
+                    bulbGlass.setAttribute('stroke', '#475569');
+                    bulbFilament.setAttribute('stroke', '#94a3b8');
+                    bulbHalo.classList.add('hidden');
+
+                    badge.innerText = '❌ Не світиться (Струму немає)';
+                    badge.className = 'mt-1 text-xs font-bold px-2.5 py-0.5 rounded-lg bg-slate-100 border border-slate-300 text-slate-600 shadow-sm';
+                }
+
+            } else {
+                wireRed.classList.remove('wire-flowing');
+                wireBlue.classList.remove('wire-flowing');
+
+                bulbGraphic.className = 'relative bulb-off';
+                bulbGlass.setAttribute('fill', '#ffffff');
+                bulbGlass.setAttribute('stroke', '#475569');
+                bulbFilament.setAttribute('stroke', '#94a3b8');
+                bulbHalo.classList.add('hidden');
+
+                badge.innerText = 'Коло розмікнене';
+                badge.className = 'mt-1 text-xs font-bold px-2.5 py-0.5 rounded-lg bg-white/90 border border-slate-300 text-slate-500 shadow-sm';
+            }
+        }
+
+        // Add Log Entry to Journal Table
+        function logToJournal() {
+            if (loggedSamples.has(currentSample.id)) return;
+            loggedSamples.add(currentSample.id);
+
+            const emptyRow = document.getElementById('journal-empty-row');
+            if (emptyRow) emptyRow.remove();
+
+            const tbody = document.getElementById('journal-tbody');
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-50 transition-all border-b border-slate-100';
+
+            let resultBadge = '';
+            if (currentSample.conducts === 'yes') {
+                resultBadge = '<span class="inline-flex items-center gap-1 font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200"><i class="fa-solid fa-circle-check text-emerald-500"></i> Світиться (Проводить струм)</span>';
+            } else if (currentSample.conducts === 'dim') {
+                resultBadge = '<span class="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Слабко світиться</span>';
+            } else {
+                resultBadge = '<span class="inline-flex items-center gap-1 font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200"><i class="fa-solid fa-circle-xmark text-slate-400"></i> Не світиться</span>';
+            }
+
+            tr.innerHTML = `
+                <td class="p-2 font-black text-slate-900">${currentSample.name}</td>
+                <td class="p-2 text-slate-600 font-semibold">${currentSample.state}</td>
+                <td class="p-2">${resultBadge}</td>
+            `;
+
+            tbody.insertBefore(tr, tbody.firstChild);
+        }
+
+        // Reset Table Log
+        function resetJournal() {
+            loggedSamples.clear();
+            document.getElementById('journal-tbody').innerHTML = `
+                <tr id="journal-empty-row">
+                    <td colspan="3" class="p-3 text-center text-slate-400 italic">
+                        Обирайте зразки та замикайте коло — записи випробувань з'являться тут.
+                    </td>
+                </tr>
+            `;
+        }
+    </script>
+</body>
+</html>
